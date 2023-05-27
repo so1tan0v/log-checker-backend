@@ -1,0 +1,5 @@
+/build
+/node_modules
+/env-14.19
+/static/config.ts
+/.idea
