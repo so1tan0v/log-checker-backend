@@ -1,0 +1,30 @@
+{
+  "name": "log-checker-backend",
+  "version": "0.0.1",
+  "description": "Модуль для проверки состояния Логов и конфига для Doctorroom",
+  "main": "index.js",
+  "scripts": {
+    "build": "tsc -p tsconfig.json",
+    "start": "node build/index.js",
+    "dev": "nodemon index.ts"
+  },
+  "author": "Alexandr Soltanov <sashasyltanov@gmail.com>",
+  "license": "ISC",
+  "dependencies": {
+    "@types/lodash": "^4.14.194",
+    "@types/ssh2-sftp-client": "^9.0.0",
+    "date-and-time": "^3.0.0",
+    "fastify": "^4.17.0",
+    "fasty": "^0.1.1",
+    "ftp": "^0.3.10",
+    "lodash": "^4.17.21",
+    "nodemon": "^2.0.22",
+    "ssh2-sftp-client": "^9.1.0",
+    "ts-node": "^10.9.1"
+  },
+  "devDependencies": {
+    "@types/node": "^18.16.3",
+    "typescript": "^5.0.4"
+  },
+  "keywords": []
+}
