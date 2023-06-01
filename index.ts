@@ -119,9 +119,12 @@ server.post<{ Body: IQuerySetFile }>('/api/sendNodeFile', async (request, reply)
 
         try {
             await client.put(tmpFileName, filePathTmpInServer);
-            await client.chmod(filePathTmpInServer, 777);
+
             await client.rename(filePath, filePath + `.bak-${curDateTime}`);
             await client.rename(filePathTmpInServer, filePath);
+
+            await client.chmod(filePath, 0o777);
+            await client.chmod(filePath + `.bak-${curDateTime}`, 0o777);
         } catch (e) {
             fs.unlinkSync(tmpFileName)
             await client.end();
