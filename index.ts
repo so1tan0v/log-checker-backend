@@ -54,13 +54,16 @@ server.get<{ Querystring: IQueryGetFile }>('/api/getFileByLpuIdAndType', async (
         reply
             .code(400)
             .send({
-            error: "Не удалось найти ЛПУ"
-        })
+                error: "Не удалось найти ЛПУ"
+            })
         return;
     }
 
     let client = new SFTPClient();
-    const connect = selectedLpu!.connect;
+    let connect = selectedLpu!.connect;
+    if(selectedLpu?.childElements && selectedLpu?.childElements[0]?.connect)
+        connect = selectedLpu?.childElements[0]?.connect;
+
     try {
         await client.connect({
             host     : connect?.hostName,
@@ -100,16 +103,16 @@ server.post<{ Body: IQuerySetFile }>('/api/sendNodeFile', async (request, reply)
         reply
             .code(400)
             .send({
-            error: "Не удалось найти ЛПУ"
-        })
+                error: "Не удалось найти ЛПУ"
+            })
         return;
     }
     if(selectedLpu.readonly) {
         reply
             .code(400)
             .send({
-            error: "Невозможно изменять файлы. ЛПУ доступно только для чтения."
-        })
+                error: "Невозможно изменять файлы. ЛПУ доступно только для чтения."
+            })
         return;
     }
 
