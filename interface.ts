@@ -15,6 +15,7 @@ export interface ILpu {
     errLoggerRelativePath ?: string | 'doctorroom/logs/error.txt',
     yamlRelativePath      ?: string | 'doctorroom/config/config.yaml',
     childElements         ?: Array<ILpu>
+    readonly              ?: boolean
 }
 
 export interface IQueryGetFile {
@@ -35,9 +36,11 @@ export interface ILpuForFrontend {
     name              : string,
     availableLpuTypes : Array<string>,
     childElements     ?: Array<ILpuChildForFrontend>
+    readonly          : boolean
 }
 
 export interface ILpuChildForFrontend {
     name          : string,
+    titleName     : string,
     childElements ?: Array<ILpuForFrontend>
 }

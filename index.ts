@@ -8,22 +8,30 @@ import * as crypto from 'crypto';
 
 import {lpuList} from "./static/config";
 import {decryptCyrillicLpuType, getLpuById, getLpuTypeTitleNameByAliasName} from "./helper";
-import {ILpuForFrontend, IQueryGetFile, IQuerySetFile} from "./interface";
+import {ILpuChildForFrontend, ILpuForFrontend, IQueryGetFile, IQuerySetFile} from "./interface";
 
 const server = fastify()
 
 
 
 server.get('/api/getAvailableLpu', async (request, reply) => {
-    const lpuListForFrontend: Array<ILpuForFrontend> = lpuList.map(lpu => {
-        let result: ILpuForFrontend = {titleName: lpu.titleName, name: lpu.name, availableLpuTypes: []};
+    const lpuListForFrontend: Array<ILpuForFrontend> = []
+    lpuList.forEach(lpu => {
+        let result: ILpuForFrontend = {
+            titleName         : lpu.titleName,
+            name              : lpu.name,
+            availableLpuTypes : [],
+            readonly          : lpu?.readonly ?? false
+        };
 
-        let childElements;
+        let childElements: Array<ILpuChildForFrontend> = [];
         if(lpu.childElements) {
-            childElements = lpu.childElements.map(childLpu => ({
-                name      : childLpu.name,
-                titleName : childLpu.titleName
-            }))
+            lpu.childElements?.forEach(childLpu => (
+                childElements.push({
+                    name      : childLpu.name,
+                    titleName : childLpu.titleName
+                })
+            ))
         }
         if(childElements && !isEmpty(childElements))
             result.childElements = childElements;
@@ -32,7 +40,7 @@ server.get('/api/getAvailableLpu', async (request, reply) => {
             let lpuTypeTitleName = getLpuTypeTitleNameByAliasName(lpuType)
             result.availableLpuTypes.push(lpuTypeTitleName);
         }
-        return result;
+        lpuListForFrontend.push(result);
     })
 
     reply.send(lpuListForFrontend);
@@ -96,6 +104,15 @@ server.post<{ Body: IQuerySetFile }>('/api/sendNodeFile', async (request, reply)
         })
         return;
     }
+    if(selectedLpu.readonly) {
+        reply
+            .code(400)
+            .send({
+            error: "Невозможно изменять файлы. ЛПУ доступно только для чтения."
+        })
+        return;
+    }
+
 
     const client = new SFTPClient(),
           connect = selectedLpu!.connect;

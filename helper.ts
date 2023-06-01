@@ -1,8 +1,10 @@
 import {lpuList} from "./static/config";
+import {ILpu} from "./interface";
 
 export function getLpuById(id: string) {
     let separatedId = id.split('-');
-    let selectedLpu = lpuList.find(lpu => {
+    const newLpuList: Array<ILpu> = JSON.parse(JSON.stringify(lpuList))
+    let selectedLpu = newLpuList.find(lpu => {
         if(separatedId[1]) {
             if(lpu.name === separatedId[0])
                 if(lpu.childElements)
