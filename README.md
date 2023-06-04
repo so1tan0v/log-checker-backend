@@ -14,11 +14,11 @@ sudo npm install
 ```
 4. Созбрать сервис
 ```
-sudo npm build
+sudo npm run build
 ```
 
 ## Запуск
-`env-14.19/bin/npm start`
+`env-14.19/bin/npm run start`
 
 
 ## Создание приложения как сервис (systemctrl)
