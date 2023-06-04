@@ -165,7 +165,7 @@ server.post<{ Body: IQuerySetFile }>('/api/sendNodeFile', async (request, reply)
     reply.send('Tonus');
 })
 
-server.listen({ port: 3333 }, (err, address) => {
+server.listen({ port: 3145 }, (err, address) => {
     if (err) {
         console.error(err)
         process.exit(1)
