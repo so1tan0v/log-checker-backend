@@ -10,7 +10,7 @@
 Если вы хотите использовать виртуальное окружение для **NodeJs**, то
 1. Установка nodeenv
 ```
-sudo pip install nodeenv
+pip install nodeenv
 ```
 2. Установка локальной версии nodeJs и npm
 ```
@@ -19,19 +19,19 @@ nodeenv --node=14.19.0 --npm=6.14.16 env-14.19
 3. Установка окружения 
 ```
 . env-14.19/bin/activate
-sudo npm install
+npm install
 ```
 
 **ИНАЧЕ**
 
 1. Установка окружения 
 ```
-sudo npm install
+npm install
 ```
 
 ## Сборка приложения
 ```
-sudo npm run build
+npm run build
 ```
 
 

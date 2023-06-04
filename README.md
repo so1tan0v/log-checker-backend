@@ -10,7 +10,7 @@ This application is used to return available connections, retrieve the selected 
 If you want to use a virtual environment for **NodeJs**, then
 1. Installation nodeenv
 ```
-sudo pip install nodeenv
+pip install nodeenv
 ```
 2. Installing a local version of NodeJs and npm
 ```
@@ -19,19 +19,19 @@ nodeenv --node=14.19.0 --npm=6.14.16 env-14.19
 3. Installation environment
 ```
 . env-14.19/bin/activate
-sudo npm install
+npm install
 ```
 
 **ELSE**
 
 1. Installation environment 
 ```
-sudo npm install
+npm install
 ```
 
 ## Build the application
 ```
-sudo npm run build
+npm run build
 ```
 
 ## Start the application
