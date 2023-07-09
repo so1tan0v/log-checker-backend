@@ -7,11 +7,7 @@ export interface ILpu {
         userName  : string | 'root'
         password  : string | 'shedF34A'
     }
-    rootPath ?: {
-        amb     ?: string | '/var/www/html/web_amb_doctor',
-        stac    ?: string | '/var/www/html/web'
-        ambStac ?: string | '/var/www/html/web'
-    },
+    rootPath ?: any,
     errLoggerRelativePath ?: string | 'doctorroom/logs/error.txt',
     yamlRelativePath      ?: string | 'doctorroom/config/config.yaml',
     childElements         ?: Array<ILpu>
@@ -21,13 +17,13 @@ export interface ILpu {
 export interface IQueryGetFile {
     id       : string;
     fileType ?: "yaml" | "error";
-    lpuType  : 'Стационар' | 'Амбулатория' | 'Амбулатория + Стационар'
+    lpuType  : 'Стационар' | 'Амбулатория' | 'Амбулатория + Стационар' | string
 }
 
 export interface IQuerySetFile {
     id       : string;
     fileType ?: "yaml" | "error";
-    lpuType  : 'Стационар' | 'Амбулатория' | 'Амбулатория + Стационар',
+    lpuType  : 'Стационар' | 'Амбулатория' | 'Амбулатория + Стационар'  | string,
     node     ?: string
 }
 

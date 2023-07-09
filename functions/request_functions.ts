@@ -1,0 +1,266 @@
+import {FastifyReply, FastifyRequest} from "fastify";
+import SFTPClient from "ssh2-sftp-client";
+import {isEmpty} from "lodash";
+
+import * as fs from "fs";
+import * as nodeDate from 'date-and-time'
+import * as crypto from 'crypto';
+
+import {lpuList} from "../static/config";
+import {ILpuChildForFrontend, ILpuForFrontend, IQueryGetFile, IQuerySetFile} from "../interface";
+import {getLpuById} from "./helper";
+import path from "path";
+import * as repl from "repl";
+
+
+/**
+ * Метод возращает все доступные ЛПУ для работы
+ * @param request
+ * @param reply
+ */
+export async function getAvailableLpu(request: FastifyRequest, reply: FastifyReply) {
+    const lpuListForFrontend: Array<ILpuForFrontend> = []
+    lpuList.forEach(lpu => {
+        let result: ILpuForFrontend = {
+            titleName         : lpu.titleName,
+            name              : lpu.name,
+            availableLpuTypes : [],
+            readonly          : lpu?.readonly ?? false
+        };
+
+        let childElements: Array<ILpuChildForFrontend> = [];
+        if(lpu.childElements) {
+            lpu.childElements?.forEach(childLpu => (
+                childElements.push({
+                    name      : childLpu.name,
+                    titleName : childLpu.titleName
+                })
+            ))
+        }
+        if(childElements && !isEmpty(childElements))
+            result.childElements = childElements;
+
+        for(let lpuType in lpu.rootPath) {
+            let lpuTypeTitleName = lpuType
+            result.availableLpuTypes.push(lpuTypeTitleName);
+        }
+        lpuListForFrontend.push(result);
+    })
+
+    reply.send(lpuListForFrontend);
+}
+
+
+/**
+ * Метод возвращает запрошенный файл из сервера
+ * @param request
+ * @param reply
+ */
+export async function getFileByLpuIdAndType(request: FastifyRequest, reply: FastifyReply)  {
+    let {id, fileType, lpuType} = request.query as IQueryGetFile;
+    let selectedLpu = getLpuById(id);
+
+    if(!selectedLpu || isEmpty(selectedLpu)) {
+        reply
+            .code(400)
+            .send({
+                error: "Не удалось найти ЛПУ"
+            })
+        return;
+    }
+
+    let client = new SFTPClient();
+    let connect = selectedLpu!.connect;
+    if(selectedLpu?.childElements && selectedLpu?.childElements[0]?.connect)
+        connect = selectedLpu?.childElements[0]?.connect;
+
+    try {
+        await client.connect({
+            host     : connect?.hostName,
+            port     : connect?.port || 22,
+            username : connect!.userName,
+            password : connect!.password,
+        })
+    } catch (e) {
+        throw e
+    }
+    let file;
+    if(selectedLpu.rootPath && lpuType && selectedLpu.rootPath[lpuType]) {
+        try {
+            file = await client.get(selectedLpu.rootPath[lpuType] + '/' + (fileType === 'yaml' ? selectedLpu!.yamlRelativePath : selectedLpu!.errLoggerRelativePath));
+        } catch (e) {
+            await client.end();
+            throw e
+        }
+    } else {
+        await client.end();
+        reply
+            .code(400)
+            .send({
+            error: "Не удалось найти файл"
+        })
+        return;
+    }
+
+    reply.send(file.toLocaleString());
+}
+
+
+/**
+ * Метод отправляет файл на сервер
+ * @param request
+ * @param reply
+ */
+export async function sendNodeFile(request: FastifyRequest, reply: FastifyReply) {
+    let {id, fileType, lpuType, node} = request.body as IQuerySetFile;
+    let selectedLpu = getLpuById(id);
+
+    if(!selectedLpu || isEmpty(selectedLpu)) {
+        reply
+            .code(400)
+            .send({
+                error: "Не удалось найти ЛПУ"
+            })
+        return;
+    }
+    if(selectedLpu.readonly) {
+        reply
+            .code(400)
+            .send({
+                error: "Невозможно изменять файлы. ЛПУ доступно только для чтения."
+            })
+        return;
+    }
+
+
+    const client = new SFTPClient(),
+          connect = selectedLpu!.connect;
+    try {
+        await client.connect({
+            host     : connect?.hostName,
+            port     : connect?.port || 22,
+            username : connect!.userName,
+            password : connect!.password,
+        })
+    } catch (e) {
+        throw e
+    }
+    let tmpFileName = String(crypto.randomBytes(4).readUInt32LE(0));
+    fs.writeFileSync(tmpFileName, node ?? '');
+
+    if(selectedLpu.rootPath && lpuType && selectedLpu.rootPath[lpuType]) {
+        const filePath = selectedLpu.rootPath[lpuType] + '/' + (fileType === 'yaml' ? selectedLpu!.yamlRelativePath : selectedLpu!.errLoggerRelativePath),
+              filePathTmpInServer = `${filePath}.tmp`,
+              curDateTime = nodeDate.format(new Date(), 'YY-MM-DD@hh:mm:ss');
+
+        try {
+            await client.put(tmpFileName, filePathTmpInServer);
+
+            await client.rename(filePath, filePath + `.bak-${curDateTime}`);
+            await client.rename(filePathTmpInServer, filePath);
+
+            await client.chmod(filePath, 0o777);
+            await client.chmod(filePath + `.bak-${curDateTime}`, 0o777);
+        } catch (e) {
+            fs.unlinkSync(tmpFileName)
+            await client.end();
+            throw e
+        }
+    } else {
+        await client.end();
+        fs.unlinkSync(tmpFileName)
+        reply
+            .code(400)
+            .send({
+            error: "Не удалось найти файл"
+        })
+        return;
+    }
+
+    fs.unlinkSync(tmpFileName);
+    reply.send('Tonus');
+}
+
+
+export async function getFileByLpuIdAndTypeNew(request: FastifyRequest, reply: FastifyReply) {
+    let { id, fileType, lpuType } = request.query as IQueryGetFile;
+    let selectedLpu = getLpuById(id);
+
+    if (!selectedLpu || isEmpty(selectedLpu)) {
+        reply
+            .code(400)
+            .send({
+                error: "Не удалось найти ЛПУ"
+            });
+        return;
+    }
+
+    let client = new SFTPClient();
+    let connect = selectedLpu.connect;
+    if (selectedLpu?.childElements && selectedLpu?.childElements[0]?.connect) {
+        connect = selectedLpu?.childElements[0]?.connect;
+    }
+
+    try {
+        await client.connect({
+            host     : connect?.hostName,
+            port     : connect?.port || 22,
+            username : connect!.userName,
+            password : connect!.password,
+        });
+    } catch (e) {
+        throw e;
+    }
+
+    let remoteFilePath: string;
+    if (selectedLpu.rootPath && lpuType && selectedLpu.rootPath[lpuType]) {
+        const filePath = fileType === 'yaml'
+            ? selectedLpu.yamlRelativePath ?? ''
+            : selectedLpu.errLoggerRelativePath ?? '';
+
+        remoteFilePath = path.join(selectedLpu.rootPath[lpuType], filePath);
+    } else {
+        await client.end();
+        reply
+            .code(400)
+            .send({
+                error: "Не удалось найти файл"
+            });
+        return;
+    }
+
+    try {
+        const stats = await client.stat(remoteFilePath);
+        const readStream = client.createReadStream(remoteFilePath);
+
+        reply.header('Content-Type', 'application/octet-stream');
+
+        readStream.on('data', (chunk: any) => {
+            const contentFile = chunk.toLocaleString();
+            reply.raw.write('');
+        });
+
+        readStream.on('end', () => {
+            reply.raw.end();
+            console.log(`Файл успешно отправлен на клиент: ${remoteFilePath}`);
+            // client.end();
+        });
+
+        readStream.on('error', (error: any) => {
+            console.error('Ошибка при чтении файла:', error);
+            // client.end();
+            reply
+                .status(500)
+                .send({ success: false, message: 'Ошибка при чтении файла' });
+        });
+
+        reply.send(readStream);
+    } catch (error) {
+        console.error('Ошибка при скачивании файла:', error);
+        reply
+            .status(500)
+            .send({ success: false, message: 'Ошибка при скачивании файла' });
+    }
+
+    return reply;
+}
