@@ -7,10 +7,8 @@ import * as nodeDate from 'date-and-time'
 import * as crypto from 'crypto';
 
 import {lpuList} from "../static/config";
-import {ILpuChildForFrontend, ILpuForFrontend, IQueryGetFile, IQuerySetFile} from "../interface";
+import {ILpu, ILpuForFrontend, IQueryGetFile, IQuerySetFile} from "../interface";
 import {getLpuById} from "./helper";
-import path from "path";
-import * as repl from "repl";
 
 
 /**
@@ -19,30 +17,28 @@ import * as repl from "repl";
  * @param reply
  */
 export async function getAvailableLpu(request: FastifyRequest, reply: FastifyReply) {
-    const lpuListForFrontend: Array<ILpuForFrontend> = []
+    const lpuListForFrontend: Array<ILpuForFrontend> = [];
+
     lpuList.forEach(lpu => {
         let result: ILpuForFrontend = {
             titleName         : lpu.titleName,
             name              : lpu.name,
-            availableLpuTypes : [],
-            readonly          : lpu?.readonly ?? false
+            availableLpuTypes : {}
         };
 
-        let childElements: Array<ILpuChildForFrontend> = [];
+        let childElements: Array<ILpu> = [];
         if(lpu.childElements) {
             lpu.childElements?.forEach(childLpu => (
                 childElements.push({
-                    name      : childLpu.name,
-                    titleName : childLpu.titleName
+                    ...childLpu
                 })
             ))
         }
         if(childElements && !isEmpty(childElements))
             result.childElements = childElements;
 
-        for(let lpuType in lpu.rootPath) {
-            let lpuTypeTitleName = lpuType
-            result.availableLpuTypes.push(lpuTypeTitleName);
+        for(let lpuType in lpu.category) {
+            result.availableLpuTypes[lpuType] = lpu.category[lpuType];
         }
         lpuListForFrontend.push(result);
     })
@@ -57,7 +53,7 @@ export async function getAvailableLpu(request: FastifyRequest, reply: FastifyRep
  * @param reply
  */
 export async function getFileByLpuIdAndType(request: FastifyRequest, reply: FastifyReply)  {
-    let {id, fileType, lpuType} = request.query as IQueryGetFile;
+    let { id, fileType, lpuType } = request.query as IQueryGetFile;
     let selectedLpu = getLpuById(id);
 
     if(!selectedLpu || isEmpty(selectedLpu)) {
@@ -85,9 +81,9 @@ export async function getFileByLpuIdAndType(request: FastifyRequest, reply: Fast
         throw e
     }
     let file;
-    if(selectedLpu.rootPath && lpuType && selectedLpu.rootPath[lpuType]) {
+    if(lpuType && fileType && selectedLpu.category[lpuType] && selectedLpu.category[lpuType][fileType]) {
         try {
-            file = await client.get(selectedLpu.rootPath[lpuType] + '/' + (fileType === 'yaml' ? selectedLpu!.yamlRelativePath : selectedLpu!.errLoggerRelativePath));
+            file = await client.get(selectedLpu.category[lpuType][fileType].path);
         } catch (e) {
             await client.end();
             throw e
@@ -148,8 +144,8 @@ export async function sendNodeFile(request: FastifyRequest, reply: FastifyReply)
     let tmpFileName = String(crypto.randomBytes(4).readUInt32LE(0));
     fs.writeFileSync(tmpFileName, node ?? '');
 
-    if(selectedLpu.rootPath && lpuType && selectedLpu.rootPath[lpuType]) {
-        const filePath = selectedLpu.rootPath[lpuType] + '/' + (fileType === 'yaml' ? selectedLpu!.yamlRelativePath : selectedLpu!.errLoggerRelativePath),
+    if(lpuType && fileType && selectedLpu.category[lpuType] && selectedLpu.category[lpuType][fileType]) {
+        const filePath = selectedLpu.category[lpuType][fileType].path,
               filePathTmpInServer = `${filePath}.tmp`,
               curDateTime = nodeDate.format(new Date(), 'YY-MM-DD@hh:mm:ss');
 
@@ -182,7 +178,7 @@ export async function sendNodeFile(request: FastifyRequest, reply: FastifyReply)
 }
 
 
-export async function getFileByLpuIdAndTypeNew(request: FastifyRequest, reply: FastifyReply) {
+export async function getFileByLpuIdAndTypeByChunk(request: FastifyRequest, reply: FastifyReply) {
     let { id, fileType, lpuType } = request.query as IQueryGetFile;
     let selectedLpu = getLpuById(id);
 
@@ -213,12 +209,8 @@ export async function getFileByLpuIdAndTypeNew(request: FastifyRequest, reply: F
     }
 
     let remoteFilePath: string;
-    if (selectedLpu.rootPath && lpuType && selectedLpu.rootPath[lpuType]) {
-        const filePath = fileType === 'yaml'
-            ? selectedLpu.yamlRelativePath ?? ''
-            : selectedLpu.errLoggerRelativePath ?? '';
-
-        remoteFilePath = path.join(selectedLpu.rootPath[lpuType], filePath);
+    if (lpuType && fileType && selectedLpu.category[lpuType] && selectedLpu.category[lpuType][fileType]) {
+        remoteFilePath = selectedLpu.category[lpuType][fileType].path;
     } else {
         await client.end();
         reply
@@ -230,25 +222,23 @@ export async function getFileByLpuIdAndTypeNew(request: FastifyRequest, reply: F
     }
 
     try {
-        const stats = await client.stat(remoteFilePath);
+        await client.stat(remoteFilePath);
         const readStream = client.createReadStream(remoteFilePath);
 
         reply.header('Content-Type', 'application/octet-stream');
 
         readStream.on('data', (chunk: any) => {
-            const contentFile = chunk.toLocaleString();
             reply.raw.write('');
         });
 
         readStream.on('end', () => {
             reply.raw.end();
-            console.log(`Файл успешно отправлен на клиент: ${remoteFilePath}`);
-            // client.end();
+            client.end();
         });
 
         readStream.on('error', (error: any) => {
             console.error('Ошибка при чтении файла:', error);
-            // client.end();
+            client.end();
             reply
                 .status(500)
                 .send({ success: false, message: 'Ошибка при чтении файла' });

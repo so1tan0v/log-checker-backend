@@ -4,15 +4,15 @@ import {IQueryGetFile, IQuerySetFile} from "./interface";
 import {
     getAvailableLpu,
     getFileByLpuIdAndType,
-    getFileByLpuIdAndTypeNew,
+    getFileByLpuIdAndTypeByChunk,
     sendNodeFile
 } from "./functions/request_functions";
 
-const server = fastify()
+const server = fastify();
 
-server.get('/api/getAvailableLpu', getAvailableLpu)
+server.get('/api/getAvailableLpu', getAvailableLpu);
 server.get<{ Querystring: IQueryGetFile }>('/api/getFileByLpuIdAndType', getFileByLpuIdAndType);
-server.get<{ Querystring: IQueryGetFile }>('/api/getFileByLpuIdAndTypeNew', getFileByLpuIdAndTypeNew);
+server.get<{ Querystring: IQueryGetFile }>('/api/getFileByLpuIdAndTypeByChunk', getFileByLpuIdAndTypeByChunk);
 
 server.post<{ Body: IQuerySetFile }>('/api/sendNodeFile', sendNodeFile)
 
@@ -22,4 +22,4 @@ server.listen({ port: 3145 }, (err, address) => {
         process.exit(1)
     }
     console.log(`Server listening at ${address}`)
-})
+});

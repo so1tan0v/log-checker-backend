@@ -1,6 +1,7 @@
 import {ILpu} from "../interface";
 import {lpuList} from "../static/config";
 
+
 /**
  * Метод производит копирование объекта
  * @param object - объект
@@ -29,10 +30,6 @@ export function getLpuById(id: string) {
 
     if(selectedLpu && selectedLpu.childElements && separatedId[1]) {
         selectedLpu.childElements = selectedLpu.childElements.filter(lpu => lpu.name === separatedId[1])
-        if(selectedLpu.childElements) {
-            selectedLpu.yamlRelativePath = selectedLpu.childElements[0].yamlRelativePath;
-            selectedLpu.errLoggerRelativePath = selectedLpu.childElements[0].errLoggerRelativePath;
-        }
     }
 
     return selectedLpu;

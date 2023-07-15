@@ -6,17 +6,23 @@ export interface ILpu {
         port      ?: number | 22 | 2222
         userName  : string | 'root'
         password  : string | 'shedF34A'
-    }
-    rootPath ?: any,
-    errLoggerRelativePath ?: string | 'doctorroom/logs/error.txt',
-    yamlRelativePath      ?: string | 'doctorroom/config/config.yaml',
-    childElements         ?: Array<ILpu>
-    readonly              ?: boolean
+    },
+    category: {
+        [key: string]: {
+            [key: string]: {
+                path     : string,
+                clearAll ?: boolean,
+                readonly ?: boolean
+            }
+        }
+    },
+    childElements ?: Array<ILpu>,
+    readonly      ?: boolean,
 }
 
 export interface IQueryGetFile {
     id       : string;
-    fileType ?: "yaml" | "error";
+    fileType ?: "yaml" | "error" | string;
     lpuType  : 'Стационар' | 'Амбулатория' | 'Амбулатория + Стационар' | string
 }
 
@@ -30,11 +36,19 @@ export interface IQuerySetFile {
 export interface ILpuForFrontend {
     titleName         : string,
     name              : string,
-    availableLpuTypes : Array<string>,
-    childElements     ?: Array<ILpuChildForFrontend>
-    readonly          : boolean
+    availableLpuTypes : IAvailableLpyTypes
+    childElements     ?: Array<ILpu>
 }
 
+export interface IAvailableLpyTypes {
+    [key: string]: {
+        [key: string]: {
+            path     : string,
+            clearAll ?: boolean,
+            readonly ?: boolean
+        }
+    }
+}
 export interface ILpuChildForFrontend {
     name          : string,
     titleName     : string,
