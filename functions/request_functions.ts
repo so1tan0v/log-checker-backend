@@ -21,9 +21,9 @@ export async function getAvailableLpu(request: FastifyRequest, reply: FastifyRep
 
     lpuList.forEach(lpu => {
         let result: ILpuForFrontend = {
-            titleName         : lpu.titleName,
-            name              : lpu.name,
-            availableLpuTypes : {}
+            titleName  : lpu.titleName,
+            name       : lpu.name,
+            category   : {}
         };
 
         let childElements: Array<ILpu> = [];
@@ -38,7 +38,7 @@ export async function getAvailableLpu(request: FastifyRequest, reply: FastifyRep
             result.childElements = childElements;
 
         for(let lpuType in lpu.category) {
-            result.availableLpuTypes[lpuType] = lpu.category[lpuType];
+            result.category  [lpuType] = lpu.category[lpuType];
         }
         lpuListForFrontend.push(result);
     })
@@ -81,7 +81,7 @@ export async function getFileByLpuIdAndType(request: FastifyRequest, reply: Fast
         throw e
     }
     let file;
-    if(lpuType && fileType && selectedLpu.category[lpuType] && selectedLpu.category[lpuType][fileType]) {
+    if(lpuType && fileType && selectedLpu.category && selectedLpu.category[lpuType] && selectedLpu.category[lpuType][fileType]) {
         try {
             file = await client.get(selectedLpu.category[lpuType][fileType].path);
         } catch (e) {
@@ -144,7 +144,7 @@ export async function sendNodeFile(request: FastifyRequest, reply: FastifyReply)
     let tmpFileName = String(crypto.randomBytes(4).readUInt32LE(0));
     fs.writeFileSync(tmpFileName, node ?? '');
 
-    if(lpuType && fileType && selectedLpu.category[lpuType] && selectedLpu.category[lpuType][fileType]) {
+    if(lpuType && fileType && selectedLpu.category && selectedLpu.category[lpuType] && selectedLpu.category[lpuType][fileType]) {
         const filePath = selectedLpu.category[lpuType][fileType].path,
               filePathTmpInServer = `${filePath}.tmp`,
               curDateTime = nodeDate.format(new Date(), 'YY-MM-DD@hh:mm:ss');
@@ -209,7 +209,7 @@ export async function getFileByLpuIdAndTypeByChunk(request: FastifyRequest, repl
     }
 
     let remoteFilePath: string;
-    if (lpuType && fileType && selectedLpu.category[lpuType] && selectedLpu.category[lpuType][fileType]) {
+    if (lpuType && fileType && selectedLpu.category && selectedLpu.category[lpuType] && selectedLpu.category[lpuType][fileType]) {
         remoteFilePath = selectedLpu.category[lpuType][fileType].path;
     } else {
         await client.end();
@@ -227,7 +227,7 @@ export async function getFileByLpuIdAndTypeByChunk(request: FastifyRequest, repl
 
         reply.header('Content-Type', 'application/octet-stream');
 
-        readStream.on('data', (chunk: any) => {
+        readStream.on('data', () => {
             reply.raw.write('');
         });
 

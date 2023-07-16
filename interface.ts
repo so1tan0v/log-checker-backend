@@ -7,7 +7,7 @@ export interface ILpu {
         userName  : string | 'root'
         password  : string | 'shedF34A'
     },
-    category: {
+    category?: {
         [key: string]: {
             [key: string]: {
                 path     : string,
@@ -36,7 +36,7 @@ export interface IQuerySetFile {
 export interface ILpuForFrontend {
     titleName         : string,
     name              : string,
-    availableLpuTypes : IAvailableLpyTypes
+    category          : IAvailableLpyTypes
     childElements     ?: Array<ILpu>
 }
 

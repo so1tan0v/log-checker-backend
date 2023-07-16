@@ -27,9 +27,16 @@ export function getLpuById(id: string) {
             return lpu.name === id
         }
     })
+    const connection = selectedLpu?.connect;
 
     if(selectedLpu && selectedLpu.childElements && separatedId[1]) {
-        selectedLpu.childElements = selectedLpu.childElements.filter(lpu => lpu.name === separatedId[1])
+        const selectedChild = selectedLpu.childElements.filter(lpu => lpu.name === separatedId[1])[0];
+        if(selectedChild) {
+            selectedLpu = selectedChild;
+            if(connection && selectedLpu && !selectedLpu?.connect)
+                selectedLpu.connect = connection;
+        }
+
     }
 
     return selectedLpu;

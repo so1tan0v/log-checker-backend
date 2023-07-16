@@ -1,6 +1,7 @@
 /build
 /node_modules
 /env-14.19
+/.idea
 /static/config.ts
 /static/configLokb.ts
-/.idea
+/static/constsTr.ts.ts
