@@ -237,19 +237,19 @@ export async function getFileByLpuIdAndTypeByChunk(request: FastifyRequest, repl
         });
 
         readStream.on('error', (error: any) => {
-            console.error('Ошибка при чтении файла:', error);
+            console.error('Ошибка при чтении файлasdа:', error);
             client.end();
             reply
                 .status(500)
-                .send({ success: false, message: 'Ошибка при чтении файла' });
+                .send({ success: false, message: 'Ошибка при чтении файла', error });
         });
 
         reply.send(readStream);
-    } catch (error) {
-        console.error('Ошибка при скачивании файла:', error);
+    } catch (error: any) {
+        console.error(error);
         reply
             .status(500)
-            .send({ success: false, message: 'Ошибка при скачивании файла' });
+            .send({ success: false, message: error?.message, error });
     }
 
     return reply;
