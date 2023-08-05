@@ -1,6 +1,5 @@
 import {ILpu} from "../interface";
 import {lpuList} from "../static/config";
-import {isEmpty} from "lodash";
 
 
 /**
@@ -39,10 +38,6 @@ export function getLpuById(id: string) {
                 selectedLpu.connect = connection;
         }
 
-    }
-
-    if(separatedId.length > 1 && isEmpty(selectedLpu?.childElements)) {
-        selectedLpu = undefined;
     }
 
     return selectedLpu;
