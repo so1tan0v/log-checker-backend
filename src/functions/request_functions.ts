@@ -8,11 +8,11 @@ import * as crypto from 'crypto';
 
 import {lpuList} from "../static/config";
 import {ILpu, ILpuForFrontend, IQueryGetFile, IQuerySetFile} from "../interface";
-import {getLpuById} from "./helper";
+import {copyObject, getLpuById} from "./helper";
 
 
 /**
- * Метод возращает все доступные ЛПУ для работы
+ * Метод возвращает все доступные ЛПУ для работы
  * @param request
  * @param reply
  */
@@ -28,17 +28,14 @@ export async function getAvailableLpu(request: FastifyRequest, reply: FastifyRep
 
         let childElements: Array<ILpu> = [];
         if(lpu.childElements) {
-            lpu.childElements?.forEach(childLpu => (
-                childElements.push({
-                    ...childLpu
-                })
-            ))
+            childElements = copyObject(lpu.childElements);
         }
+
         if(childElements && !isEmpty(childElements))
             result.childElements = childElements;
 
         for(let lpuType in lpu.category) {
-            result.category  [lpuType] = lpu.category[lpuType];
+            result.category[lpuType] = lpu.category[lpuType];
         }
         lpuListForFrontend.push(result);
     })
@@ -78,12 +75,19 @@ export async function getFileByLpuIdAndType(request: FastifyRequest, reply: Fast
             password : connect!.password,
         })
     } catch (e) {
-        throw e
+        reply
+            .code(500)
+            .send(e);
+
+        return;
     }
-    let file;
+
     if(lpuType && fileType && selectedLpu.category && selectedLpu.category[lpuType] && selectedLpu.category[lpuType][fileType]) {
         try {
-            file = await client.get(selectedLpu.category[lpuType][fileType].path);
+            let file = await client.get(selectedLpu.category[lpuType][fileType].path);
+
+            reply.send(file.toLocaleString());
+            return;
         } catch (e) {
             await client.end();
             throw e
@@ -97,8 +101,6 @@ export async function getFileByLpuIdAndType(request: FastifyRequest, reply: Fast
         })
         return;
     }
-
-    reply.send(file.toLocaleString());
 }
 
 
@@ -108,7 +110,7 @@ export async function getFileByLpuIdAndType(request: FastifyRequest, reply: Fast
  * @param reply
  */
 export async function sendNodeFile(request: FastifyRequest, reply: FastifyReply) {
-    let {id, fileType, lpuType, node} = request.body as IQuerySetFile;
+    let {id, fileType, lpuType, fileContent} = request.body as IQuerySetFile;
     let selectedLpu = getLpuById(id);
 
     if(!selectedLpu || isEmpty(selectedLpu)) {
@@ -119,18 +121,19 @@ export async function sendNodeFile(request: FastifyRequest, reply: FastifyReply)
             })
         return;
     }
+
     if(selectedLpu.readonly) {
         reply
             .code(400)
             .send({
-                error: "Невозможно изменять файлы. ЛПУ доступно только для чтения."
+                error: "Невозможно изменять файлы. Файл доступно только для чтения."
             })
         return;
     }
 
-
     const client = new SFTPClient(),
           connect = selectedLpu!.connect;
+
     try {
         await client.connect({
             host     : connect?.hostName,
@@ -139,10 +142,15 @@ export async function sendNodeFile(request: FastifyRequest, reply: FastifyReply)
             password : connect!.password,
         })
     } catch (e) {
-        throw e
+        reply
+            .code(500)
+            .send(e);
+
+        return;
     }
+
     let tmpFileName = String(crypto.randomBytes(4).readUInt32LE(0));
-    fs.writeFileSync(tmpFileName, node ?? '');
+    fs.writeFileSync(tmpFileName, fileContent ?? '');
 
     if(lpuType && fileType && selectedLpu.category && selectedLpu.category[lpuType] && selectedLpu.category[lpuType][fileType]) {
         const filePath = selectedLpu.category[lpuType][fileType].path,
@@ -160,16 +168,21 @@ export async function sendNodeFile(request: FastifyRequest, reply: FastifyReply)
         } catch (e) {
             fs.unlinkSync(tmpFileName)
             await client.end();
-            throw e
+            reply
+                .code(500)
+                .send(e);
+
+            return;
         }
     } else {
         await client.end();
-        fs.unlinkSync(tmpFileName)
+        fs.unlinkSync(tmpFileName);
         reply
             .code(400)
             .send({
             error: "Не удалось найти файл"
         })
+
         return;
     }
 
@@ -188,6 +201,7 @@ export async function getFileByLpuIdAndTypeByChunk(request: FastifyRequest, repl
             .send({
                 error: "Не удалось найти ЛПУ"
             });
+
         return;
     }
 
@@ -205,7 +219,11 @@ export async function getFileByLpuIdAndTypeByChunk(request: FastifyRequest, repl
             password : connect!.password,
         });
     } catch (e) {
-        throw e;
+        reply
+            .code(500)
+            .send(e);
+
+        return ;
     }
 
     let remoteFilePath: string;
@@ -218,6 +236,7 @@ export async function getFileByLpuIdAndTypeByChunk(request: FastifyRequest, repl
             .send({
                 error: "Не удалось найти файл"
             });
+
         return;
     }
 
@@ -237,7 +256,6 @@ export async function getFileByLpuIdAndTypeByChunk(request: FastifyRequest, repl
         });
 
         readStream.on('error', (error: any) => {
-            console.error('Ошибка при чтении файлasdа:', error);
             client.end();
             reply
                 .status(500)
@@ -246,7 +264,6 @@ export async function getFileByLpuIdAndTypeByChunk(request: FastifyRequest, repl
 
         reply.send(readStream);
     } catch (error: any) {
-        console.error(error);
         reply
             .status(500)
             .send({ success: false, message: error?.message, error });

@@ -27,10 +27,10 @@ export interface IQueryGetFile {
 }
 
 export interface IQuerySetFile {
-    id       : string;
-    fileType ?: "yaml" | "error";
-    lpuType  : 'Стационар' | 'Амбулатория' | 'Амбулатория + Стационар'  | string,
-    node     ?: string
+    id          : string;
+    fileType    ?: "yaml" | "error";
+    lpuType     : 'Стационар' | 'Амбулатория' | 'Амбулатория + Стационар'  | string,
+    fileContent ?: string
 }
 
 export interface ILpuForFrontend {

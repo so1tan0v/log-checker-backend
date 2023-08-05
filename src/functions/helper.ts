@@ -1,5 +1,6 @@
 import {ILpu} from "../interface";
 import {lpuList} from "../static/config";
+import {isEmpty} from "lodash";
 
 
 /**
@@ -16,8 +17,9 @@ export function copyObject(object: object | Array<object>) {
  * @param id - идентификатор ЛПУ
  */
 export function getLpuById(id: string) {
-    let separatedId = id.split('-');
+    const separatedId = id.split('-');
     const newLpuList: Array<ILpu> = copyObject(lpuList);
+
     let selectedLpu = newLpuList.find(lpu => {
         if(separatedId[1]) {
             if(lpu.name === separatedId[0])
@@ -27,8 +29,8 @@ export function getLpuById(id: string) {
             return lpu.name === id
         }
     })
-    const connection = selectedLpu?.connect;
 
+    const connection = selectedLpu?.connect;
     if(selectedLpu && selectedLpu.childElements && separatedId[1]) {
         const selectedChild = selectedLpu.childElements.filter(lpu => lpu.name === separatedId[1])[0];
         if(selectedChild) {
@@ -37,6 +39,10 @@ export function getLpuById(id: string) {
                 selectedLpu.connect = connection;
         }
 
+    }
+
+    if(separatedId.length > 1 && isEmpty(selectedLpu?.childElements)) {
+        selectedLpu = undefined;
     }
 
     return selectedLpu;

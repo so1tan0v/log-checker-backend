@@ -1,12 +1,12 @@
 {
   "name": "log-checker-backend",
-  "version": "0.0.1",
+  "version": "0.0.4",
   "description": "Модуль для проверки состояния Логов и конфига для Doctorroom",
   "main": "index.js",
   "scripts": {
     "build": "tsc -p tsconfig.json",
     "start": "node build/index.js",
-    "dev": "nodemon index.ts"
+    "dev": "nodemon src/index.ts"
   },
   "author": "Alexandr Soltanov <sashasyltanov@gmail.com>",
   "license": "ISC",

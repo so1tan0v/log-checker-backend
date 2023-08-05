@@ -14,7 +14,7 @@ server.get('/api/getAvailableLpu', getAvailableLpu);
 server.get<{ Querystring: IQueryGetFile }>('/api/getFileByLpuIdAndType', getFileByLpuIdAndType);
 server.get<{ Querystring: IQueryGetFile }>('/api/getFileByLpuIdAndTypeByChunk', getFileByLpuIdAndTypeByChunk);
 
-server.post<{ Body: IQuerySetFile }>('/api/sendNodeFile', sendNodeFile)
+server.post<{ Body: IQuerySetFile }>('/api/sendNodeFile', sendNodeFile);
 
 server.listen({ port: 3145 }, (err, address) => {
     if (err) {
